@@ -15,7 +15,7 @@ enum State {
     Minus,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum IntegerRepresentation {
     Decimal(Vec<u8>),
     Hexadecimal(Vec<u8>),
@@ -23,7 +23,7 @@ pub enum IntegerRepresentation {
     Binary(Vec<u8>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FloatRepresentation {
     Decimal {
         integer: Vec<u8>,
@@ -56,6 +56,12 @@ pub enum Token {
     LeftBrace,
     RightBrace,
 
+    False,
+    True,
+    And,
+    Or,
+    Not,
+    Xor,
     Else,
     Function,
     If,
@@ -63,9 +69,11 @@ pub enum Token {
     Return,
     Lambda,
 
-    Name(Box<Vec<u8>>),
+    Identifier(Box<Vec<u8>>),
     Integer(Box<IntegerRepresentation>),
     Float(Box<FloatRepresentation>),
+
+    EOF,
 }
 
 struct Lexer {
@@ -105,8 +113,8 @@ pub enum Error {
 }
 
 impl Lexer {
-    fn new() -> Lexer {
-        Lexer {
+    fn new() -> Self {
+        Self {
             state: State::Start,
             integer: vec![],
             fractional: vec![],
@@ -169,13 +177,19 @@ impl Lexer {
 
     fn classify_identifier(self: &mut Self) {
         let token = match self.identifier.as_slice() {
+            b"and"      => Token::And,
             b"else"     => Token::Else,
+            b"false"    => Token::False,
             b"function" => Token::Function,
             b"if"       => Token::If,
             b"lambda"   => Token::Lambda,
             b"let"      => Token::Let,
+            b"not"      => Token::Not,
+            b"or"       => Token::Or,
             b"return"   => Token::Return,
-            _           => Token::Name(Box::new(take(&mut self.identifier))),
+            b"true"     => Token::True,
+            b"xor"      => Token::Xor,
+            _           => Token::Identifier(Box::new(take(&mut self.identifier))),
         };
 
         self.identifier.clear();
@@ -624,7 +638,7 @@ mod tests {
         tokens = tokenize(b"let x = 123;").unwrap();
         assert_eq!(tokens, vec![
             Token::Let,
-            Token::Name(Box::new(b"x".to_vec())),
+            Token::Identifier(Box::new(b"x".to_vec())),
             Token::Assign,
             Token::Integer(Box::new(IntegerRepresentation::Decimal(vec![1, 2, 3]))),
             Token::Semicolon,
